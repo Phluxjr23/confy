@@ -59,6 +59,15 @@ two commands need optional system tools:
 
 confy will tell you clearly if either is missing rather than crashing.
 
+## nixpkgs information
+
+[confy is currently in nixpkgs](https://github.com/NixOS/nixpkgs/pull/543546#event-28187717813) as of ~2 weeks ago, but it should be known that *i do not have a NixOS machine that currently has confy in it's repos.* **however**, confy should be in the unstable repo under the name "`confy-tui`". you can test with:
+```bash
+sudo nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable # add the unstable repo
+sudo nix-channel --update # rebuild channels to include the new one
+nix-shell -I nixpkgs=https://github.com/nixos/nixpkgs/archive/nixos-unstable.tar.gz -p confy-tui # go into a nix shell with confy installed
+```
+
 ## usage
 
 just run `confy` in your terminal
