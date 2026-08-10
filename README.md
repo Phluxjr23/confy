@@ -4,7 +4,7 @@
 
 <h1 align="center">confy</h1>
 
-<p align="center">a config manager for linux/unix based systems including macos (unix) and windows.</p>
+<p align="center">a config manager for linux/unix based systems.</p>
 
 <p align="center">simple tui for keeping track of all your config files in one place. no more hunting through ~/.config.</p>
 
@@ -22,12 +22,13 @@
 * **live preview pane** - toggle a side-by-side file preview with `p`
 * **built-in themes** - catppuccin, dracula, gruvbox, nord, tokyo-night, one-dark, switch with `:theme`
 * **remembers last file** - quick access to recently edited configs
-* **built-in file picker** - no external dependencies, navigate with vim keys
+* **built-in file picker** - navigate with vim keys, no external dependencies
 * **rollback** - automatic compressed backups before every edit, restore with `:rb`
 * **custom colors** - set colors via config.json, supports hex and named colors
 * **vim-style keybinds** - j/k navigation, command mode
-* **lightweight and fast** - pure python with curses, zero required dependencies
-* **cross-platform** - works on linux, macos, bsd, windows
+* **git integration** - sync your dotfiles to a git repo with `:git`, commit and push without leaving confy
+* **streamer mode** - hide paths and timestamps with `:streamer` so nothing leaks on stream
+* **lightweight and fast** - single native binary, zero runtime dependencies
 
 ## installation
 
@@ -36,41 +37,42 @@
 yay -S confy-tui
 ```
 
-### manual install
+### from nixpkgs (unstable)
 ```bash
-git clone https://gitlab.com/phluxjr/confy.git
+nix-shell -I nixpkgs=https://github.com/nixos/nixpkgs/archive/nixos-unstable.tar.gz -p confy-tui
+```
+
+[confy is in nixpkgs](https://github.com/NixOS/nixpkgs/pull/543546#event-28187717813) under the name `confy-tui`.
+
+### from cargo
+```bash
+cargo install confy-tui
+```
+
+### build from source
+```bash
+git clone https://github.com/phluxjr/confy.git
 cd confy
-chmod +x main.py
-sudo ln -s $(pwd)/main.py /usr/local/bin/confy
+cargo build --release
+sudo install -Dm755 target/release/confy /usr/local/bin/confy
 # optionally install the man page
 sudo install -Dm644 confy.1 /usr/share/man/man1/confy.1
 ```
 
 ## dependencies
 
-* python3
-* curses (included with python)
-
-that's it for core functionality, no ranger, no external tools.
+none required for core functionality.
 
 two commands need optional system tools:
 * `:device` (remote profiles) needs [`sshfs`](https://github.com/libfuse/sshfs) installed
 * `:su` (elevated editing) needs `pkexec` (polkit), and for use with `:device`, `user_allow_other` set in `/etc/fuse.conf` on your local machine
+* `:git commit` / `:git push` need `git` installed
 
-confy will tell you clearly if either is missing rather than crashing.
-
-## nixpkgs information
-
-[confy is currently in nixpkgs](https://github.com/NixOS/nixpkgs/pull/543546#event-28187717813) as of ~2 weeks ago, but it should be known that *i do not have a NixOS machine that currently has confy in it's repos.* **however**, confy should be in the unstable repo under the name "`confy-tui`". you can test with:
-```bash
-sudo nix-channel --add https://nixos.org/channels/nixos-unstable nixos-unstable # add the unstable repo
-sudo nix-channel --update # rebuild channels to include the new one
-nix-shell -I nixpkgs=https://github.com/nixos/nixpkgs/archive/nixos-unstable.tar.gz -p confy-tui # go into a nix shell with confy installed
-```
+confy will tell you clearly if any of these are missing rather than crashing.
 
 ## usage
 
-just run `confy` in your terminal
+just run `confy` in your terminal.
 
 ### navigation
 
@@ -97,9 +99,20 @@ just run `confy` in your terminal
 * `:device local` - switch back to your local configs
 * `:device` (no args) - show the currently active device, if any
 
+#### git integration
+* `:git sync` - copy all tracked configs into your dotfiles repo (organized by group)
+* `:git commit` - sync + prompt for a commit message
+* `:git push` - sync + commit + push to remote
+* `:git dir` - change the dotfiles repo path interactively
+* `:git dir <path>` - set the dotfiles repo path directly
+* `:git reset` - reset dotfiles repo path to `~/dotfiles-git`
+* `:bl` - toggle git blacklist on the selected file or group (blacklisted items are skipped by `:git sync`)
+* `:bouncer` - open a menu to bulk-manage the git blacklist (space to toggle, Z to confirm)
+
 #### appearance
 * `:theme <name>` - switch color theme (`catppuccin`, `dracula`, `gruvbox`, `nord`, `tokyo-night`, `one-dark`)
 * `:theme` (no args) - list available themes
+* `:streamer` - toggle streamer mode (hides paths and timestamps)
 
 #### group management
 * `:ag <group>` - add new group
@@ -115,6 +128,7 @@ just run `confy` in your terminal
 
 #### configuration
 * `:cd` - change config directory (opens built-in file picker)
+* `:cd <path>` - set config directory directly
 * `:cd reset` - reset to ~/.config
 * `:q` - quit
 
@@ -129,23 +143,22 @@ rollback can be disabled in config.json:
 }
 ```
 
-### colors
+### git integration
 
-customize colors in `~/.config/confy/config.json` under `settings.colors`. values can be named colors or hex codes:
+`:git sync` copies your tracked configs into `~/dotfiles-git` (or wherever `git_dir` points), organized by group name. files in named groups go into a folder with the group's name. ungrouped files with a shared filename prefix (e.g. `hyprland.conf` and `hyprlock.conf`) get auto-sorted into a folder named after that prefix.
+
+`:git commit` and `:git push` sync first, then prompt for a commit message in the terminal. `:git push` requires at least one prior commit to exist — make your initial commit manually.
+
+use `:bl` on any file or group to exclude it from syncing (useful for `.env` files or anything sensitive). `:bouncer` gives you a full menu to manage the blacklist in bulk.
+
+git settings in config.json:
 ```json
-"settings": {
-  "colors": {
-    "bg":        "default",
-    "fg":        "default",
-    "highlight": "#cba6f7",
-    "group":     "#89b4fa"
-  }
-}
+"git_dir": "~/dotfiles-git",
+"git_blacklist": ["/home/user/.config/some/secret.env"],
+"git_blacklist_groups": ["personal"],
+"git_auto_push": false,
+"git_auto_commit": false
 ```
-
-named colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `default`, `lavender`, `pink`, `purple`, `orange`
-
-hex colors require a terminal that supports 256 colors (most do).
 
 ### themes
 
@@ -153,11 +166,21 @@ confy ships with six built-in themes: `catppuccin` (default), `dracula`, `gruvbo
 ```
 :theme dracula
 ```
-this applies instantly and persists to config.json, no restart needed. run `:theme` with no arguments to list all available themes.
+applies instantly and persists to config.json, no restart needed. run `:theme` with no arguments to list all available themes.
+
+### streamer mode
+
+`:streamer` toggles streamer mode, which hides full file paths and timestamps — only filenames are shown. useful if you're on stream and don't want your username or directory structure visible. persists to config.json, or set it directly:
+```json
+"settings": {
+  "streamer_mode": true,
+  "streamer_hide_git": true
+}
+```
 
 ### preview pane
 
-press `p` to toggle a live preview pane alongside your file list. it shows the first lines of the selected file, updating as you move the selection. the preview reads through the same path resolution as everything else, so it works correctly on a mounted `:device` too. your preference persists across restarts.
+press `p` to toggle a live preview pane alongside your file list. it shows the first lines of the selected file, updating as you move the selection. works correctly on a mounted `:device` too. your preference persists across restarts.
 
 ### remote profiles (`:device`)
 
@@ -169,43 +192,40 @@ press `p` to toggle a live preview pane alongside your file list. it shows the f
 :device local             # switch back to your own configs
 ```
 
-requires [`sshfs`](https://github.com/libfuse/sshfs) installed locally. if the remote host is running an older confy that predates `config.json` (i.e. still on `tracked.json`), confy will refuse to connect and ask you to update confy there first, rather than guessing at an incompatible format.
+requires [`sshfs`](https://github.com/libfuse/sshfs) installed locally. if the remote host is running an older confy that predates `config.json` (i.e. still on `tracked.json`), confy will refuse to connect and ask you to update confy there first.
 
-while on a device, the header shows `[remote: <host>]` so it's always clear you're not looking at your local files. edits, previews, sorting, and rollback all operate on the real remote files through the mount.
+while on a device, the header shows `[remote: <host>]` so it's always clear you're not looking at your local files. edits, previews, sorting, and rollback all work through the mount.
 
 ### elevated editing (`:su`)
 
-select a file and run `:su` to open it with root, via `pkexec`. this works on local files and on files viewed through a mounted `:device` alike, since `pkexec` just elevates whatever local path is currently in view.
+select a file and run `:su` to open it with root via `pkexec`. works on local files and on files viewed through a mounted `:device`.
 
-on a mounted device, this is genuinely useful: sshfs presents remote files under your own uid, so root-owned remote files (like `/etc/pf.conf`) may be unreadable/unwritable normally. `:su` gives you local root, which can write through the mount even when your regular user can't.
-
-this needs `pkexec` (polkit) installed. for `:su` to work while a device is mounted, your **local** machine also needs `user_allow_other` uncommented in `/etc/fuse.conf` (a one-time system config change, confy will tell you if it's missing and reconnecting the device is enough to pick it up after you set it).
+needs `pkexec` (polkit) installed. for `:su` to work while a device is mounted, your local machine also needs `user_allow_other` uncommented in `/etc/fuse.conf`. confy will tell you if it's missing.
 
 ### search mode
 
 press `/` to enter search mode, then start typing:
-- filters both files and groups in real-time
-- case-insensitive matching
-- `enter` to accept and keep filtering
-- `esc` to clear search and show all files
+* filters both files and groups in real-time
+* case-insensitive matching
+* `enter` to confirm, `esc` to clear and show all files
 
 ### groups
 
-groups are purely organizational - your actual config files stay in their original locations. groups help you organize your tracked configs into logical categories like "hyprland", "nvim", "shell", etc.
+groups are purely organizational. your actual config files stay in their original locations. `ungrouped` always appears at the bottom of the list regardless of sort mode.
 
-groups are collapsible - press `space` or `enter` on a group header to toggle.
+groups are collapsible, press `space` or `enter` on a group header to toggle.
 
 ## configuration file
 
-confy stores everything in `~/.config/confy/config.json`. if you're upgrading from an older version with `tracked.json`, confy will automatically migrate it on first run.
+confy stores everything in `~/.config/confy/config.json`. upgrading from an older version with `tracked.json`? confy migrates it automatically on first run.
 
 full example config.json:
 ```json
 {
   "groups": {
-    "ungrouped": [],
     "hyprland": ["/home/user/.config/hypr/hyprland.conf"],
-    "nvim": ["/home/user/.config/nvim/init.lua"]
+    "nvim": ["/home/user/.config/nvim/init.lua"],
+    "ungrouped": []
   },
   "settings": {
     "rollback": true,
@@ -215,88 +235,102 @@ full example config.json:
       "fg": "default",
       "highlight": "#cba6f7",
       "group": "#89b4fa"
-    }
+    },
+    "background_enable": false,
+    "background_color": "#1e1e2e",
+    "streamer_mode": false,
+    "streamer_hide_git": true,
+    "editor": null,
+    "ssh_allow": true
   },
+  "git_dir": "/home/user/dotfiles-git",
+  "git_blacklist": [],
+  "git_blacklist_groups": [],
+  "git_auto_push": false,
+  "git_auto_commit": false,
   "preview_enabled": false
 }
 ```
+
+### settings reference
+
+| key | description | default |
+| --- | --- | --- |
+| `rollback` | save a backup before every edit | `true` |
+| `theme` | active color theme | `"catppuccin"` |
+| `background_enable` | draw a solid background instead of terminal default | `false` |
+| `background_color` | background color (hex) | `"#1e1e2e"` |
+| `streamer_mode` | hide paths and timestamps in the file list | `false` |
+| `streamer_hide_git` | also hide git-blacklisted files in streamer mode | `true` |
+| `editor` | override `$EDITOR` (useful for .desktop launchers) | `null` |
+| `ssh_allow` | enable `:device` / sshfs integration | `true` |
 
 ## why confy?
 
 tired of doing `cd ~/.config/whatever` a million times a day? same. confy keeps all your important configs in one list so you can jump to them instantly.
 
-organize related configs into groups, search through everything, sort however you want, and open files in your editor with a single keypress. if you break something, roll it back.
+organize related configs into groups, search through everything, sort however you want, and open files in your editor with a single keypress. if you break something, roll it back. if you want your dotfiles in git, `:git push` and you're done.
 
 simple, fast, does one thing well.
 
 ## examples
-```bash
+```
 # start confy
 confy
 
-# create some groups
+# create some groups and add configs
 :ag hyprland
-:ag nvim
-:ag shell
+:ac hyprland
 
-# add configs to groups
-:ac hyprland  # opens file picker, navigate to hyprland.conf
-:ac nvim      # opens file picker, navigate to init.lua
-
-# move existing files between groups
-# (select file first, then)
+# move a file between groups
 :mg shell
 
 # search for configs
-/hypr         # shows only hyprland-related files
+/hypr
 
-# sort by recently modified
+# sort by recently modified, newest first
 :sort date
-:reverse      # newest first
+:reverse
 
 # oops, broke your config
-:rb           # rollback to last backup
+:rb
 
-# switch to a nicer theme
+# switch theme
 :theme tokyo-night
 
-# toggle a live preview while browsing
+# toggle preview pane
 p
 
-# check on your server's system configs
+# check on your server's configs
 :device phluxjr
-:su           # edit a root-owned file like /etc/pf.conf
-:device local # back to your own machine
+:su
+:device local
+
+# sync dotfiles to git
+:git push
+
+# going live? hide your paths
+:streamer
 ```
 
 ## tips
 
-* set `export EDITOR=nvim` in your shell rc for your preferred editor
+* set `export EDITOR=nvim` in your shell rc, or use the `editor` setting in config.json
 * use groups to organize by application (hyprland/, nvim/, kitty/)
 * use `:sort date` to quickly find recently edited configs
-* search with `/` to quickly jump to specific configs
-* collapse groups you don't use often to keep view clean
+* use `:bl` on `.env` files or anything sensitive before running `:git sync`
+* collapse groups you don't use often to keep the view clean
 * missing files show up in red so you know when a config has moved
-
-## windows support
-
-on windows, change the config directory to where you keep your configs:
-```
-:cd
-# navigate to C:\Users\YourName\AppData\Local or wherever
-```
-
-`:device` and `:su` rely on sshfs/FUSE and polkit, both linux-specific, so they're not available on windows or macos. everything else works cross-platform.
 
 ---
 
 <p align="center">
-  <strong>copyright © 2025-2026 phluxjr</strong><br>
+  <strong>copyright &copy; 2025-2026 phluxjr</strong><br>
   GPL-3.0-or-later
 </p>
 
 <p align="center">
-  prs welcome! this is a simple tool but if you have ideas for improvements, open an issue or submit a pr.
+  prs welcome! if you have ideas for improvements, open an issue or submit a pr.
 </p>
 
 <p align="center">

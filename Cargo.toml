@@ -1,0 +1,25 @@
+[package]
+name = "confy-tui"
+version = "3.1.0"
+edition = "2024"
+description = "a config manager for linux/unix based systems"
+license = "GPL-3.0-or-later"
+authors = ["phluxjr <phluxjr@phluxjr.net>"]
+repository = "https://github.com/phluxjr/confy"
+homepage = "https://phluxjr.net/confy"
+readme = "README.md"
+keywords = ["tui", "config", "dotfiles", "cli"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "confy"
+path = "src/main.rs"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+dirs = "5"
+flate2 = "1"
