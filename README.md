@@ -147,7 +147,7 @@ rollback can be disabled in config.json:
 
 `:git sync` copies your tracked configs into `~/dotfiles-git` (or wherever `git_dir` points), organized by group name. files in named groups go into a folder with the group's name. ungrouped files with a shared filename prefix (e.g. `hyprland.conf` and `hyprlock.conf`) get auto-sorted into a folder named after that prefix.
 
-`:git commit` and `:git push` sync first, then prompt for a commit message in the terminal. `:git push` requires at least one prior commit to exist — make your initial commit manually.
+`:git commit` and `:git push` sync first, then prompt for a commit message in the terminal. `:git push` requires at least one prior commit to exist. make your initial commit manually.
 
 use `:bl` on any file or group to exclude it from syncing (useful for `.env` files or anything sensitive). `:bouncer` gives you a full menu to manage the blacklist in bulk.
 
@@ -170,7 +170,7 @@ applies instantly and persists to config.json, no restart needed. run `:theme` w
 
 ### streamer mode
 
-`:streamer` toggles streamer mode, which hides full file paths and timestamps — only filenames are shown. useful if you're on stream and don't want your username or directory structure visible. persists to config.json, or set it directly:
+`:streamer` toggles streamer mode, which hides full file paths and timestamps. only filenames are shown. useful if you're on stream and don't want your username or directory structure visible. persists to config.json, or set it directly:
 ```json
 "settings": {
   "streamer_mode": true,
