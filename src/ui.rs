@@ -100,34 +100,34 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<()> 
                     match commands::handle(app, &raw) {
                         CmdResult::Quit => break,
                         CmdResult::NeedPicker { group } => {
-                            drop_alt(terminal)?;
+                            terminal.clear()?;
                             let browse = app.local_path(&app.cfg.config_dir).to_string_lossy().into_owned();
                             let mut picker = Picker::new(&browse, false);
                             if let Some(picked) = picker.run(terminal)? {
                                 let tracked = app.tracked_path(&picked);
                                 app.track_file(&std::path::PathBuf::from(&tracked), &group);
                             }
-                            restore_alt(terminal)?;
+                            terminal.clear()?;
                         }
                         CmdResult::NeedCdPicker => {
-                            drop_alt(terminal)?;
+                            terminal.clear()?;
                             let mut picker = Picker::new(&app.cfg.config_dir, true);
                             if let Some(dir) = picker.run(terminal)? {
                                 app.cfg.config_dir = dir.to_string_lossy().into_owned();
                                 app.save();
                                 app.popup = Some(format!("config dir → {}", app.cfg.config_dir));
                             }
-                            restore_alt(terminal)?;
+                            terminal.clear()?;
                         }
                         CmdResult::NeedGitDirPicker => {
-                            drop_alt(terminal)?;
+                            terminal.clear()?;
                             let mut picker = Picker::new(&app.cfg.git_dir, true);
                             if let Some(dir) = picker.run(terminal)? {
                                 app.cfg.git_dir = dir.to_string_lossy().into_owned();
                                 app.save();
                                 app.popup = Some(format!("git dir → {}", app.cfg.git_dir));
                             }
-                            restore_alt(terminal)?;
+                            terminal.clear()?;
                         }
                         CmdResult::NeedBouncer => {
                             run_bouncer(terminal, app)?;
@@ -231,7 +231,6 @@ fn draw_header(f: &mut ratatui::Frame, app: &App, colors: &Colors, area: Rect) {
         .constraints([Constraint::Length(1), Constraint::Length(1)])
         .split(area);
 
-    // row 0: just "confy" (+ remote tag if active)
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("confy", colors.group),
@@ -240,7 +239,6 @@ fn draw_header(f: &mut ratatui::Frame, app: &App, colors: &Colors, area: Rect) {
         chunks[0],
     );
 
-    // row 1: previous: {x}    sort: name (asc)    config dir: /...
     let info = format!(
         "previous: {{{}}}    sort: {} ({})    config dir: {}",
         last, app.cfg.sort_mode, app.cfg.sort_order, app.cfg.config_dir
@@ -264,7 +262,6 @@ fn draw_body(f: &mut ratatui::Frame, app: &App, colors: &Colors, table_state: &m
         (area, None)
     };
 
-    // build rows. groups span all columns, files use proper cells
     let rows: Vec<Row> = app.flat_view.iter().map(|item| match item {
         Item::Group(name) => {
             let collapsed = if app.cfg.collapsed_groups.contains(name) { "▶" } else { "▼" };
@@ -276,7 +273,6 @@ fn draw_body(f: &mut ratatui::Frame, app: &App, colors: &Colors, table_state: &m
             ]).style(colors.group)
         }
         Item::File { path, .. } => {
-            // always show just the filename in the list, dir goes in the rightmost col
             let fname = Path::new(path).file_name()
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_else(|| path.clone());
@@ -301,9 +297,9 @@ fn draw_body(f: &mut ratatui::Frame, app: &App, colors: &Colors, table_state: &m
     }).collect();
 
     let table = Table::new(rows, [
-        Constraint::Min(20),     // filename. takes all leftover space
-        Constraint::Length(17),  // date    . fixed "2026-08-09 23:51"
-        Constraint::Length(40),  // dir     . fixed, rightmost
+        Constraint::Min(20),
+        Constraint::Length(17),
+        Constraint::Length(40),
     ])
     .block(Block::default().borders(Borders::TOP))
     .row_highlight_style(colors.highlight)
@@ -311,7 +307,6 @@ fn draw_body(f: &mut ratatui::Frame, app: &App, colors: &Colors, table_state: &m
     f.render_stateful_widget(table, list_area, table_state);
 
     if let Some(parea) = preview_area {
-        // Clear first. kills any floating characters left over from previous frames
         f.render_widget(Clear, parea);
 
         let (header, body) = match app.selected_item() {
@@ -340,10 +335,8 @@ fn draw_body(f: &mut ratatui::Frame, app: &App, colors: &Colors, table_state: &m
 }
 
 fn draw_footer(f: &mut ratatui::Frame, app: &App, colors: &Colors, mode: &Mode, cmd_buf: &str, search_buf: &str, area: Rect) {
-    // page = which screenful of items we're on, based on visible rows in the body
-    // body height = terminal height minus header(2) + footer(2) rows, minus table border(1)
-    let terminal_h = area.bottom() as usize; // area.bottom() is the y of the footer
-    let body_h = terminal_h.saturating_sub(5).max(1); // 2 header + 2 footer + 1 border
+    let terminal_h = area.bottom() as usize;
+    let body_h = terminal_h.saturating_sub(5).max(1);
     let total  = app.flat_view.len().max(1);
     let pages  = (total + body_h - 1) / body_h;
     let page   = (app.selected / body_h) + 1;
@@ -425,7 +418,6 @@ fn drop_alt<B: Backend>(terminal: &mut Terminal<B>) -> Result<()> {
 fn restore_alt<B: Backend>(terminal: &mut Terminal<B>) -> Result<()> {
     crossterm::terminal::enable_raw_mode()?;
     crossterm::execute!(std::io::stderr(), crossterm::terminal::EnterAlternateScreen)?;
-    // clear twice: once to flush any leftover editor output, once after ratatui takes over
     terminal.clear()?;
     terminal.draw(|f| f.render_widget(
         ratatui::widgets::Clear,
@@ -440,8 +432,6 @@ fn run_bouncer<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<
     use crate::app::Item;
     use crate::git;
 
-    // build a flat list of (display_label, tracked_path_or_group, is_group)
-    // seeded with current blacklist state
     let items: Vec<(String, String, bool)> = app.flat_view.iter().filter_map(|item| {
         match item {
             Item::Group(name) if name != "ungrouped" => {
@@ -457,7 +447,6 @@ fn run_bouncer<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<
         }
     }).collect();
 
-    // selected set: pre-populate with existing blacklist
     let mut selected: Vec<bool> = items.iter().map(|(_, key, is_group)| {
         if *is_group { git::is_group_blacklisted(app, key) }
         else         { git::is_blacklisted(app, key) }
@@ -500,7 +489,6 @@ fn run_bouncer<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<
                     selected[cursor] = !selected[cursor];
                 }
                 KeyCode::Char('Z') => {
-                    // apply: set blacklists to match selected state
                     for (i, (_, key, is_group)) in items.iter().enumerate() {
                         if *is_group {
                             if selected[i] { git::blacklist_group(app, key); }
@@ -524,8 +512,6 @@ fn run_bouncer<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<
 
 // ── simple line prompt (used for commit message) ──────────────────────────────
 
-/// drop back to the normal terminal and read a line from stdin.
-/// simpler than trying to do inline text input in ratatui for a one-off prompt.
 fn prompt_line(prompt: &str) -> Result<String> {
     use std::io::{BufRead, Write};
     print!("{prompt}");

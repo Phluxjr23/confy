@@ -8,7 +8,7 @@ confy has come a long way from its first release in november all the way to bein
 
 **november 9th, 2025**
 
-confy started as a [199 line python script](https://github.com/phluxjr/confy/commit/0a6d27abcddd70a4c1d12c27b5ccf579982f2b92#diff-b10564ab7d2c520cdd0243874879fb0a782862c3c902ab535faabe57d5a505e1) written in very, VERY bad curses — and honestly it was surprising it even worked given the author's prior experience with the curses library (read: basically none).
+confy started as a [199 line python script](https://github.com/phluxjr/confy/commit/0a6d27abcddd70a4c1d12c27b5ccf579982f2b92#diff-b10564ab7d2c520cdd0243874879fb0a782862c3c902ab535faabe57d5a505e1) written in very, VERY bad curses, and honestly it was surprising it even worked given my prior experience with the curses library (read: basically none).
 
 used ranger as a file picker, no configurable colors, pure proof-of-concept material. but it worked, and that was enough.
 
@@ -18,7 +18,7 @@ used ranger as a file picker, no configurable colors, pure proof-of-concept mate
 
 **january 6th, 2026**
 
-"monstrosity" isn't entirely fair — this version introduced some genuinely useful stuff:
+"monstrosity" isn't entirely fair, this version introduced some genuinely useful stuff:
 
 - changeable config directory
 - fuzzy search
@@ -37,9 +37,12 @@ the excuse this time was "bi-monthly update time." regardless, this one actually
 
 - removed ranger as a dependency (did we mention it removed ranger?)
 - custom colors
+- removed ranger
 - man page
+- no more ranger
 - rollback
 - overall just... better
+- ranger? none
 
 seriously though. no more ranger.
 
