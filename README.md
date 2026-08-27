@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="confy-logo.png" alt="confy logo" width="256">
+  <img src="branding/confy-full-color-transparent.png" alt="confy logo" width="256">
 </p>
 
 <h1 align="center">confy</h1>
