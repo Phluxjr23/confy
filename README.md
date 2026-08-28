@@ -333,6 +333,10 @@ p
   prs welcome! if you have ideas for improvements, open an issue or submit a pr.
 </p>
 
+<p align="cemter">
+  if you like confy, consider leaving a star or contributing to the repo!
+</p>
+
 <p align="center">
   <em>man page included - <code>man confy</code> after install</em>
 </p>
